@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Summit Collective: The Jordan Route</title>
+<!--
+  SUMMIT COLLECTIVE: THE JORDAN ROUTE
+  A choice-based OB learning game for MGT 336.
+  Single file, no external resources. Works on GitHub Pages as index.html.
+
+  HOW TO EDIT CONTENT:
+  - All story text, activities, and choices live in the SCENES array in the <script> at the bottom.
+  - Concept definitions for the Field Notes journal live in the CONCEPTS object.
+  - Meter changes for each choice are in each option's "fx" object (eng = engagement, trust, perf = performance).
+  - Ending thresholds are in the ENDINGS array.
+-->
+<style>
+  :root{
+    --orange:#FF8200; --orange-dark:#E76400; --orange-soft:#FFF1E3;
+    --gray:#4B4B4B; --smoke:#58595B; --light:#F6F6F6; --line:#D6D6D6;
+    --ink:#1F1F1F; --muted:#555; --card:#FFFFFF;
+    --good:#1E6B33; --good-bg:#E7F4EA; --mid:#7A4B00; --mid-bg:#FFF4D6;
+    --bad:#A1261C; --bad-bg:#FCE9E7; --sky:#E6EEF2; --focus:#005FCC;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --light:#1B1B1B; --card:#262626; --ink:#F2F2F2; --muted:#C9C9C9; --line:#444;
+      --orange-soft:#3A2A1A; --good:#8FD6A2; --good-bg:#1D3324; --mid:#F2CF7A; --mid-bg:#3A311A;
+      --bad:#F3A39B; --bad-bg:#3D2120; --sky:#22303A; --focus:#7FB2FF;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;background:var(--light);color:var(--ink);line-height:1.55;font-size:16px}
+  button,input{font:inherit}
+  :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+  .wrap{max-width:980px;margin:0 auto;padding:0 16px}
+
+  /* Header */
+  .site-head{background:#4B4B4B;color:#fff;position:relative;overflow:hidden}
+  .site-head .wrap{position:relative;z-index:1;padding-top:22px;padding-bottom:58px}
+  .eyebrow{margin:0;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#FFD2A6;font-weight:600}
+  .site-head h1{margin:4px 0 2px;font-size:clamp(24px,4vw,34px);line-height:1.2}
+  .site-head p.sub{margin:0;color:#EDEDED}
+  .peaks{position:absolute;left:0;right:0;bottom:0;width:100%;height:70px;display:block}
+
+  /* Status panel */
+  .status{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--orange);border-radius:10px;margin:-30px 0 18px;position:relative;z-index:2;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .trail{list-style:none;margin:0 0 12px;padding:0;display:flex;gap:4px;flex-wrap:wrap}
+  .trail li{flex:1 1 90px;font-size:12px;text-align:center;padding:6px 4px;border-radius:6px;background:var(--light);color:var(--muted);border:1px solid var(--line)}
+  .trail li .dot{display:block;font-size:16px;line-height:1}
+  .trail li.done{background:var(--good-bg);color:var(--good);border-color:transparent}
+  .trail li.current{background:var(--orange);color:#000;font-weight:700;border-color:var(--orange-dark)}
+  .meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px 18px;align-items:end}
+  .meter-label{display:flex;justify-content:space-between;font-size:13px;font-weight:600}
+  .bar{height:10px;background:var(--light);border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .bar span{display:block;height:100%;background:var(--orange);transition:width .5s ease}
+  .bar.trust span{background:#517C96}
+  .bar.perf span{background:#58595B}
+  @media (prefers-color-scheme: dark){ .bar.perf span{background:#A7A9AC} .bar.trust span{background:#7FA9C2} }
+  .insight{font-size:13px;font-weight:600}
+  .insight strong{font-size:18px;color:var(--orange-dark)}
+  @media (prefers-color-scheme: dark){ .insight strong{color:var(--orange)} }
+  details.notes{margin-top:12px;border-top:1px solid var(--line);padding-top:8px}
+  details.notes summary{cursor:pointer;font-weight:600;font-size:14px}
+  .notes-list{margin:8px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+  .notes-list li{background:var(--light);border-left:4px solid var(--orange);padding:8px 10px;border-radius:4px;font-size:14px}
+  .notes-empty{font-size:14px;color:var(--muted);margin:8px 0 0}
+
+  /* Stage */
+  .stage{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:22px 22px 18px;margin-bottom:28px;min-height:320px}
+  .stage h2{margin:0 0 4px;font-size:clamp(20px,3vw,26px);line-height:1.25}
+  .stage h2:focus{outline:none}
+  .camp-tag{display:inline-block;background:var(--orange);color:#000;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;margin-bottom:8px;letter-spacing:.04em;text-transform:uppercase}
+  .scene-body p{margin:.6em 0}
+  .say{display:flex;gap:12px;align-items:flex-start;background:var(--sky);border-radius:10px;padding:12px 14px;margin:14px 0}
+  .avatar{flex:0 0 44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;background:#517C96;font-size:15px}
+  .avatar.you{background:#4B4B4B}
+  .avatar.lead{background:#8A4A00}
+  .say .who{font-weight:700;font-size:14px;margin:0}
+  .say .line{margin:2px 0 0}
+  .callout{background:var(--orange-soft);border-left:5px solid var(--orange);padding:10px 14px;border-radius:4px;margin:14px 0}
+  .callout p{margin:.3em 0}
+  .task{font-weight:600}
+
+  /* Choices */
+  fieldset{border:0;margin:0;padding:0;min-width:0}
+  legend{font-weight:700;margin:16px 0 8px;padding:0}
+  .opt{display:flex;gap:12px;width:100%;text-align:left;background:var(--card);color:var(--ink);border:2px solid var(--line);border-radius:8px;padding:12px 14px;margin:0 0 10px;cursor:pointer;align-items:flex-start}
+  .opt:hover:not(:disabled){border-color:var(--orange)}
+  .opt:disabled{cursor:default;opacity:.6}
+  .opt.picked{opacity:1;border-color:var(--orange-dark);background:var(--orange-soft)}
+  .opt.correct{opacity:1;border-color:var(--good);background:var(--good-bg)}
+  .opt.wrong{opacity:1;border-color:var(--bad);background:var(--bad-bg)}
+  .opt-letter{flex:0 0 28px;height:28px;border-radius:50%;background:var(--gray);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+  @media (prefers-color-scheme: dark){ .opt-letter{background:#777} }
+
+  /* Sorting */
+  .sort-item{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:0 0 10px}
+  .sort-item legend{margin:0;padding:0 4px;font-weight:600}
+  .cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .cats label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:14px;background:var(--light)}
+  .cats label:has(input:checked){background:var(--orange);color:#000;border-color:var(--orange-dark);font-weight:600}
+  .cats input{accent-color:#E76400}
+  .sort-item.right{border-color:var(--good);background:var(--good-bg)}
+  .sort-item.miss{border-color:var(--bad);background:var(--bad-bg)}
+  .item-fb{margin:6px 0 0;font-size:14px}
+  .item-fb:empty{display:none}
+  .hours{font-size:12px;color:var(--muted);font-weight:400}
+
+  /* Survey card */
+  .survey{display:grid;gap:8px;margin:12px 0;max-width:520px}
+  .survey-row{display:grid;grid-template-columns:150px 1fr 40px;gap:8px;align-items:center;font-size:14px}
+  .survey-row .bar{height:14px}
+  @media (max-width:420px){ .survey-row{grid-template-columns:110px 1fr 36px} }
+
+  /* Budget */
+  .budget-head{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin:14px 0}
+  .pill{background:var(--gray);color:#fff;border-radius:999px;padding:6px 14px;font-weight:700}
+  .pill.mps{background:var(--orange);color:#000}
+  .dim{display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
+  .dim h3{margin:0;font-size:16px}
+  .dim p{margin:0;font-size:14px;color:var(--muted);grid-column:1/-1}
+  .stepper{display:flex;align-items:center;gap:8px}
+  .stepper button{width:36px;height:36px;border-radius:50%;border:2px solid var(--gray);background:var(--card);color:var(--ink);font-size:20px;line-height:1;cursor:pointer}
+  .stepper button:disabled{opacity:.35;cursor:default}
+  .pips{display:flex;gap:3px}
+  .pips i{width:12px;height:18px;border-radius:3px;background:var(--light);border:1px solid var(--line)}
+  .pips i.on{background:#58595B;border-color:#58595B}
+  .pips i.new{background:var(--orange);border-color:var(--orange-dark)}
+  .val{min-width:22px;text-align:center;font-weight:700}
+
+  /* Feedback */
+  .fb{border-radius:8px;padding:12px 14px;margin:14px 0 0;border-left:6px solid}
+  .fb p{margin:.3em 0}
+  .fb-title{font-weight:700}
+  .fb.best{background:var(--good-bg);border-color:var(--good)}
+  .fb.ok{background:var(--mid-bg);border-color:#C98A00}
+  .fb.poor{background:var(--bad-bg);border-color:var(--bad)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+  .chip.up{color:var(--good)} .chip.down{color:var(--bad)}
+  .new-notes{font-size:14px;margin-top:6px}
+
+  /* Actions */
+  .actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:18px}
+  .btn{background:var(--orange);color:#000;border:2px solid var(--orange-dark);border-radius:6px;padding:10px 20px;font-weight:700;cursor:pointer}
+  .btn:hover{background:#FF9A33}
+  .btn:disabled{opacity:.45;cursor:default}
+  .btn.secondary{background:var(--card);color:var(--ink);border-color:var(--gray)}
+  .msg{font-size:14px;color:var(--muted);margin:8px 0 0;text-align:right}
+
+  /* Title + ending */
+  .hero{text-align:center;padding:10px 0}
+  .hero .badge{font-size:56px;line-height:1}
+  .how{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:18px 0;text-align:left}
+  .how div{background:var(--light);border-top:4px solid var(--orange);border-radius:6px;padding:10px 12px;font-size:14px}
+  .how strong{display:block;font-size:15px;margin-bottom:2px}
+  .ending-card{border-radius:10px;padding:16px;margin:14px 0;border:2px solid var(--orange);background:var(--orange-soft)}
+  .ending-card h3{margin:0 0 6px}
+  .log{padding-left:20px} .log li{margin:4px 0}
+  .tag{font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px;margin-left:6px;white-space:nowrap}
+  .tag.best{background:var(--good-bg);color:var(--good)} .tag.ok{background:var(--mid-bg);color:var(--mid)} .tag.poor{background:var(--bad-bg);color:var(--bad)}
+  textarea.copybox{width:100%;min-height:160px;margin-top:10px;font:13px/1.4 Consolas,monospace;border:1px solid var(--line);border-radius:6px;padding:8px;background:var(--light);color:var(--ink)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+  footer{font-size:13px;color:var(--muted);text-align:center;padding:0 16px 28px}
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important;animation:none!important} }
+  @media (max-width:520px){ .stage{padding:16px} .status{padding:12px} }
+</style>
+</head>
+<body>
+<header class="site-head">
+  <div class="wrap">
+    <p class="eyebrow">MGT 336 &middot; Organizational Behavior</p>
+    <h1>Summit Collective: The Jordan Route</h1>
+    <p class="sub">Five camps. One employee. Every choice changes the climb.</p>
+  </div>
+  <svg class="peaks" viewBox="0 0 1000 70" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+    <polygon points="0,70 120,18 210,52 330,6 450,48 560,14 690,50 800,10 910,44 1000,22 1000,70" fill="#58595B"/>
+    <polygon points="330,6 352,22 340,20 330,28 318,19 308,21" fill="#FFFFFF" opacity=".85"/>
+    <polygon points="800,10 820,24 808,22 798,30 788,21 780,23" fill="#FFFFFF" opacity=".85"/>
+    <polygon points="0,70 160,40 290,60 420,32 560,58 700,36 860,60 1000,40 1000,70" fill="#FF8200"/>
+  </svg>
+</header>
+
+<main class="wrap" id="sc-game">
+  <section class="status" aria-label="Your progress">
+    <ol class="trail" id="sc-trail"></ol>
+    <div class="meters">
+      <div>
+        <div class="meter-label"><span id="lbl-eng">Jordan's Engagement</span><span id="val-eng">55</span></div>
+        <div class="bar" role="progressbar" aria-labelledby="lbl-eng" aria-valuemin="0" aria-valuemax="100" id="bar-eng"><span></span></div>
+      </div>
+      <div>
+        <div class="meter-label"><span id="lbl-trust">Trust in You</span><span id="val-trust">50</span></div>
+        <div class="bar trust" role="progressbar" aria-labelledby="lbl-trust" aria-valuemin="0" aria-valuemax="100" id="bar-trust"><span></span></div>
+      </div>
+      <div>
+        <div class="meter-label"><span id="lbl-perf">Team Performance</span><span id="val-perf">80</span></div>
+        <div class="bar perf" role="progressbar" aria-labelledby="lbl-perf" aria-valuemin="0" aria-valuemax="100" id="bar-perf"><span></span></div>
+      </div>
+      <div class="insight">Insight Points: <strong id="val-insight">0</strong></div>
+    </div>
+    <details class="notes" id="sc-notes">
+      <summary>Field Notes (<span id="notes-count">0</span> concepts collected)</summary>
+      <div id="notes-body"></div>
+    </details>
+  </section>
+
+  <section class="stage" id="sc-stage" aria-label="Game"></section>
+  <p class="sr-only" id="sc-live" aria-live="polite"></p>
+</main>
+
+<footer>Summit Collective is a fictional organization created for MGT 336. No progress is saved; refreshing the page restarts the climb.</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ============================================================
+     CONCEPTS — Field Notes journal entries
+     ============================================================ */
+  var CONCEPTS = {
+    emoExpBeh:   ["Emotion vs. Expression vs. Behavior", "What someone feels, what they show, and what they do are three different things, and leaders often confuse them."],
+    displayRules:["Display Rules", "Formal or informal norms about which emotions are appropriate to show at work."],
+    emoLabor:    ["Emotional Labor", "The effort of displaying the emotions an organization expects, even when they differ from what you actually feel."],
+    surfaceDeep: ["Surface vs. Deep Acting", "Surface acting changes only the outward expression; deep acting tries to genuinely shift the feeling. Sustained surface acting is linked to emotional exhaustion."],
+    ei:          ["Emotional Intelligence", "The ability to perceive, understand, use, and regulate emotions in yourself and others."],
+    bigFive:     ["Big Five Personality Traits", "Openness, conscientiousness, extraversion, agreeableness, and emotional stability. Jordan's energy for new ideas points toward high openness to experience."],
+    pjFit:       ["Person–Job Fit", "How well a person's abilities, interests, and personality match the demands of a specific job."],
+    poFit:       ["Person–Organization Fit", "How well a person's values match the organization's. Jordan's P–O fit is strong even though P–J fit is weak."],
+    engagement:  ["Engagement vs. Performance", "High performance does not guarantee engagement. People can do a job well while feeling disconnected from it."],
+    attribution: ["Attribution Theory", "We explain behavior as caused by internal factors (the person) or external factors (the situation)."],
+    fae:         ["Fundamental Attribution Error", "Overestimating personal factors and underestimating situational ones when explaining someone else's behavior."],
+    contrast:    ["Contrast Effect", "Evaluating someone by comparison with the people around them rather than on their own merits."],
+    selective:   ["Selective Perception", "Noticing information that confirms what we already believe while overlooking information that doesn't."],
+    facets:      ["Job Satisfaction Facets", "Satisfaction with the work itself, pay, supervision, coworkers, and growth can differ. Satisfaction with the work itself is usually the strongest driver."],
+    evln:        ["Exit–Voice–Loyalty–Neglect", "Four responses to dissatisfaction. Voice is active and constructive; neglect is passive and destructive."],
+    commitment:  ["Organizational Commitment", "An employee's identification with and attachment to the organization and its goals."],
+    jcm:         ["Job Characteristics Model", "Skill variety, task identity, task significance, autonomy, and feedback shape how motivating a job is."],
+    mps:         ["Motivating Potential Score", "MPS = ((skill variety + task identity + task significance) ÷ 3) × autonomy × feedback. Low autonomy or feedback drags the whole score down."],
+    jobCrafting: ["Job Crafting", "Employees actively reshaping their tasks, relationships, and how they think about their work."]
+  };
+
+  var CAMPS = ["Basecamp", "Camp 1: Emotions", "Camp 2: Fit", "Camp 3: Perception", "Camp 4: Attitudes", "Camp 5: Motivation", "The Summit"];
+  var CAMP_ICONS = ["⛺", "1", "2", "3", "4", "5", "🚩"];
+
+  /* ============================================================
+     SCENES — the whole game
+     types: title | story | sort | quiz | choice | budget | ending
+     ============================================================ */
+  function say(who, line, cls){
+    var initials = who === "You" ? "You" : who.split(" ").map(function(w){return w.charAt(0);}).join("").slice(0,2);
+    return '<div class="say"><div class="avatar ' + (cls||"") + '" aria-hidden="true">' + initials + '</div><div><p class="who">' + who + '</p><p class="line">' + line + '</p></div></div>';
+  }
+
+  var SCENES = [
+    { type:"title", ch:0 },
+
+    { type:"story", ch:0, title:"Welcome to Summit Collective",
+      body:
+        '<p>Summit Collective makes outdoor gear and apparel, and it is growing fast. You have just joined as a <strong>People &amp; Culture Advisor</strong>, and your first assignment is to support the <strong>client partnerships</strong> team.</p>' +
+        '<p>Everyone tells you the same thing about one team member: <strong>Jordan</strong> is one of the strongest performers on the team. Reliable. Sharp. One of the younger people in the division.</p>' +
+        '<p>So why does your first week start with a calendar invite from Jordan titled <em>"Quick question about my review"</em>?</p>' +
+        '<div class="callout"><p><strong>Heads up:</strong> This is <strong>Summit Collective Jordan</strong>, not the Jordan from the Chapter 4 textbook example. Use only the Summit Collective story in this game.</p></div>' +
+        '<p>Your goal: help Jordan, the team, and Summit Collective climb together. Watch the meters above. Every decision moves them.</p>' },
+
+    /* ---------- CAMP 1: EMOTIONS ---------- */
+    { type:"story", ch:1, title:"The Smile Memo",
+      body:
+        '<p>Jordan sits down across from you, laptop closed, voice steady.</p>' +
+        say("Jordan", "My review was great. Quality, reliability, numbers, all strong. Then my supervisor said a few senior leaders feel I don\'t seem happy enough. I should smile more and work on being approachable.") +
+        say("Jordan", "I\'ve been trying to stay professional and composed, especially since I\'m younger than most people in those meetings. Now that\'s a problem? Could that really affect whether I get promoted?") +
+        '<p>Before you advise Jordan, you need to untangle what is actually going on.</p>' },
+
+    { type:"sort", ch:1, title:"Untangle It: Feeling, Showing, or Doing?",
+      intro:'<p>Leaders often blur three different things together. Sort each observation into the correct category.</p>',
+      cats:["Emotion (felt)", "Expression (shown)", "Behavior (done)"],
+      items:[
+        { text:"Jordan feels frustrated and blindsided after the review.", a:0, why:"Frustration is an internal emotional state." },
+        { text:"Jordan keeps a neutral, composed face in leadership meetings.", a:1, why:"A facial display is an emotional expression; it says little about what Jordan actually feels." },
+        { text:"Jordan answers every client email within one business day.", a:2, why:"This is observable work behavior, and it is excellent." },
+        { text:"Jordan feels anxious about upcoming leadership development selections.", a:0, why:"Anxiety is felt, not necessarily shown." },
+        { text:"Jordan forces a smile through a meeting while exhausted.", a:1, why:"This is surface acting: changing the display without changing the feeling." },
+        { text:"Jordan volunteers to lead the quarterly client review.", a:2, why:"Volunteering is a behavior, and it signals engagement more than a smile does." }
+      ],
+      concepts:["emoExpBeh","surfaceDeep"],
+      after:function(){ return '<p><strong>Notice:</strong> the feedback Jordan received targets <em>expression</em>, while Jordan\'s <em>behavior</em> is already strong.</p>'; } },
+
+    { type:"choice", ch:1, title:"Your Advice to Jordan",
+      prompt:"Jordan asks, \u201CSo what should I do?\u201D What do you say?",
+      options:[
+        { text:"\u201CHonestly, just smile more in those meetings. It\'s an easy fix and it\'ll get leadership off your back.\u201D",
+          short:"Told Jordan to just smile more", tone:"poor", fx:{eng:-12, trust:-10},
+          title:"Rough trail: you just prescribed surface acting.",
+          feedback:"Asking Jordan to display emotions they don\'t feel creates emotional labor. Over time, faking it is associated with emotional exhaustion and lower satisfaction, and Jordan now feels you sided with the problem.",
+          concepts:["emoLabor","surfaceDeep"] },
+        { text:"\u201CLet\'s separate what leaders actually need, like clients and colleagues feeling welcome, from your natural style. Then we can find authentic ways for you to show warmth that still feel like you.\u201D",
+          short:"Separated the real need from Jordan's natural style", tone:"best", fx:{eng:10, trust:12},
+          title:"Strong move: emotionally intelligent coaching.",
+          feedback:"You validated Jordan\'s feelings, clarified the underlying display rule, and opened a path toward authentic expression rather than a forced performance. That is emotional intelligence in action.",
+          concepts:["ei","displayRules"] },
+        { text:"\u201CIgnore it. Your metrics speak for themselves.\u201D",
+          short:"Told Jordan to ignore the feedback", tone:"ok", fx:{eng:-3, trust:5},
+          title:"Mixed results: validating, but risky.",
+          feedback:"Jordan appreciates being backed up, but perceptions still affect promotion decisions at Summit Collective. Ignoring the display rule does not make it disappear.",
+          concepts:["displayRules"] },
+        { text:"\u201CBefore you change anything, I\'ll ask your supervisor which specific moments prompted this feedback.\u201D",
+          short:"Asked the supervisor for specific examples", tone:"ok", fx:{eng:4, trust:7},
+          title:"Solid move: get the facts first.",
+          feedback:"Vague feedback like \u201Cseem happier\u201D is hard to act on. Asking for specific behaviors is wise, though Jordan still leaves the conversation without much support for the feelings involved.",
+          concepts:["emoExpBeh"] }
+      ] },
+
+    /* ---------- CAMP 2: FIT ---------- */
+    { type:"story", ch:2, title:"Wrong Trail?",
+      body:
+        '<p>A few weeks pass. Jordan\'s performance is still strong. But during a career development conversation, Jordan says something that surprises the supervisor.</p>' +
+        say("Jordan", "I enjoy the people here, and I believe in what Summit Collective is trying to do. But I don\'t think this role fits who I am.") +
+        say("Jordan", "The work I love is solving new problems, brainstorming, and helping teams think differently. Most of my job is detailed processes, documentation, and routine coordination.") +
+        '<p>From a performance standpoint, Jordan is succeeding. From an engagement standpoint, Jordan is drifting. Let\'s look at Jordan\'s actual week.</p>' },
+
+    { type:"sort", ch:2, title:"Energy Audit: Jordan's Week",
+      intro:'<p>Based on what Jordan told you, tag each task as <strong>energizing</strong> or <strong>draining</strong> for Jordan.</p>',
+      cats:["Energizing", "Draining"],
+      items:[
+        { text:"Updating client records in the CRM", hrs:8, a:1, why:"Detailed process and documentation work." },
+        { text:"Brainstorming a new client onboarding experience", hrs:3, a:0, why:"New problem plus idea generation: Jordan\'s sweet spot." },
+        { text:"Writing weekly status documentation", hrs:7, a:1, why:"Routine documentation." },
+        { text:"Helping a team rethink a stalled account", hrs:4, a:0, why:"Helping teams think differently." },
+        { text:"Coordinating meeting schedules across departments", hrs:9, a:1, why:"Routine coordination." },
+        { text:"Processing contract renewal paperwork", hrs:6, a:1, why:"Detailed, repetitive process." },
+        { text:"Pitching a new partnership idea to a client", hrs:3, a:0, why:"Creative, novel problem-solving." }
+      ],
+      concepts:["pjFit","bigFive"],
+      after:function(items){
+        var drain = 0, total = 0;
+        items.forEach(function(it){ total += it.hrs; if(it.a === 1){ drain += it.hrs; } });
+        var pct = Math.round(drain / total * 100);
+        return '<p><strong>The math:</strong> about <strong>' + drain + ' of Jordan\'s ' + total + ' weekly hours (' + pct + '%)</strong> go to work that drains Jordan. Strong performance is hiding a person–job fit problem.</p>';
+      } },
+
+    { type:"choice", ch:2, title:"What Happens Next?",
+      prompt:"The supervisor asks for your recommendation. What do you propose?",
+      options:[
+        { text:"Have Jordan take a personality assessment, then use the results to explain why Jordan just isn\'t a \u201Cprocess person.\u201D",
+          short:"Used a personality test as a label", tone:"ok", fx:{eng:-2, trust:-3},
+          title:"Mixed results: useful tool, wrong use.",
+          feedback:"Assessments can spark helpful reflection, but using a result as a label boxes Jordan in instead of solving the fit problem. Jordan feels categorized, not supported.",
+          concepts:["bigFive"] },
+        { text:"Pilot a change: Jordan joins a cross-team client innovation project for part of each week while some routine tasks are redistributed.",
+          short:"Piloted a partial role redesign", tone:"best", fx:{eng:12, trust:10, perf:2},
+          title:"Strong move: improving person–job fit without losing a great employee.",
+          feedback:"You kept Jordan\'s strong person–organization fit while fixing person–job fit. Jordan\'s strengths get used, and the team keeps a high performer.",
+          concepts:["poFit","engagement"] },
+        { text:"Remind Jordan that every job has boring parts and great employees push through.",
+          short:"Told Jordan to push through", tone:"poor", fx:{eng:-12, trust:-8},
+          title:"Rough trail: performance is not the same as engagement.",
+          feedback:"Jordan already is pushing through; that is exactly why performance is strong. Dismissing the concern signals that Summit Collective values output over people, and engagement drops further.",
+          concepts:["engagement"] },
+        { text:"Recommend Jordan transfer to a different department immediately.",
+          short:"Recommended an immediate transfer", tone:"ok", fx:{eng:6, trust:2, perf:-8},
+          title:"Mixed results: right idea, rushed execution.",
+          feedback:"Fit might improve, but the client partnerships team abruptly loses a top performer, and nobody explored whether the current role could be redesigned first.",
+          concepts:["pjFit"] }
+      ] },
+
+    /* ---------- CAMP 3: PERCEPTION ---------- */
+    { type:"story", ch:3, title:"Same Conversation, Five Stories",
+      body:
+        '<p>Word of Jordan\'s career conversation travels. In a leadership meeting, you hear four very different explanations:</p>' +
+        say("Jordan's Supervisor", "Jordan probably just needs more coaching and confidence-building.", "lead") +
+        say("Senior Leader", "Honestly, it sounds like Jordan lacks resilience when the work gets routine.", "lead") +
+        say("Jordan's Peers", "Jordan\'s strengths aren\'t being used. Jordan might be better in a different role.", "lead") +
+        say("Another Manager", "Maybe this isn\'t about personality at all. Maybe the job just gives Jordan no autonomy.", "lead") +
+        '<p>The facts haven\'t changed. The interpretations have. Time to examine the lenses.</p>' },
+
+    { type:"sort", ch:3, title:"Whose Lens Is It?",
+      intro:'<p>For each explanation, decide whether it points to something <strong>inside Jordan</strong> (internal attribution) or to <strong>Jordan\'s situation</strong> (external attribution).</p>',
+      cats:["Internal (the person)", "External (the situation)"],
+      items:[
+        { text:"Supervisor: \u201CJordan needs more coaching and confidence.\u201D", a:0, why:"Confidence is located inside Jordan." },
+        { text:"Senior leader: \u201CJordan lacks resilience.\u201D", a:0, why:"Resilience is treated as a personal trait." },
+        { text:"Peers: \u201CThe role doesn\'t use Jordan\'s strengths.\u201D", a:1, why:"This points to how the job is designed." },
+        { text:"Manager: \u201CThe job offers no autonomy.\u201D", a:1, why:"Autonomy is a feature of the situation." }
+      ],
+      concepts:["attribution"] },
+
+    { type:"quiz", ch:3, title:"Name That Bias, Part 1",
+      q:"The senior leader has never worked directly with Jordan and judged Jordan from one secondhand comment, ignoring the routine-heavy job design. Which perceptual error is most likely at work?",
+      options:["Halo effect", "Fundamental attribution error", "Self-serving bias", "Contrast effect"], a:1,
+      explain:"The fundamental attribution error means overweighting personal traits (\u201Clacks resilience\u201D) and underweighting the situation (a job full of routine coordination).",
+      concepts:["fae"] },
+
+    { type:"quiz", ch:3, title:"Name That Bias, Part 2",
+      q:"Looking back at the original review: Jordan\'s team is unusually outgoing and animated. Leaders read Jordan\'s calm composure as \u201Cunhappy\u201D mostly because Jordan stood out next to everyone else. What is this?",
+      options:["Contrast effect", "Stereotyping", "Selective perception", "Projection"], a:0,
+      explain:"The contrast effect means Jordan was evaluated relative to the people nearby instead of on Jordan\'s own behavior, which was professional and composed.",
+      concepts:["contrast"] },
+
+    { type:"choice", ch:3, title:"Clearing the Fog",
+      prompt:"Leadership asks you how to resolve the competing views. What do you do?",
+      options:[
+        { text:"Facilitate a short session where leaders separate facts from interpretations, then invite Jordan to share their own perspective directly.",
+          short:"Separated facts from interpretations and asked Jordan", tone:"best", fx:{eng:8, trust:12},
+          title:"Strong move: replacing assumptions with evidence.",
+          feedback:"You slowed down the attribution process and added the most important missing data source: Jordan. Leaders leave with a shared picture instead of four competing stories.",
+          concepts:["selective"] },
+        { text:"Go with the senior leader\'s view. They have the most experience and the final say.",
+          short:"Deferred to the senior leader", tone:"poor", fx:{eng:-10, trust:-12},
+          title:"Rough trail: rank is not evidence.",
+          feedback:"Adopting the most senior person\'s interpretation locks in the fundamental attribution error. When Jordan hears that leadership thinks they \u201Clack resilience,\u201D trust in you takes a hit.",
+          concepts:["fae"] },
+        { text:"Write a memo summarizing all four views and let leadership decide later.",
+          short:"Wrote a neutral summary memo", tone:"ok", fx:{eng:0, trust:2},
+          title:"Mixed results: organized, but stalled.",
+          feedback:"Documenting the views is helpful, but nobody checked them against facts and Jordan still hasn\'t been asked. The confusion continues.",
+          concepts:["attribution"] }
+      ] },
+
+    /* ---------- CAMP 4: ATTITUDES ---------- */
+    { type:"story", ch:4, title:"Weather Check",
+      body:
+        '<p>Summit Collective runs its quarterly pulse survey. Jordan agreed to share their results with you.</p>' +
+        '<div class="survey" role="img" aria-label="Jordan\'s satisfaction scores out of 5: Coworkers 4.7, Mission 4.6, Pay 3.8, Supervisor 3.4, The work itself 1.9.">' +
+          surveyRow("Coworkers", 4.7) + surveyRow("Mission", 4.6) + surveyRow("Pay", 3.8) + surveyRow("Supervisor", 3.4) + surveyRow("The work itself", 1.9) +
+        '</div>' +
+        '<p>Then Jordan adds something quietly at the end of your check-in:</p>' +
+        say("Jordan", "I want to be honest with you. A recruiter reached out last week. I haven\'t answered. I\'d rather make this work here, which is why I keep bringing this up.") },
+
+    { type:"quiz", ch:4, title:"Read the Survey",
+      q:"Which facet of job satisfaction is most clearly driving Jordan\'s dissatisfaction?",
+      options:["Pay", "Coworkers", "The work itself", "Supervision"], a:2,
+      explain:"The work itself scored 1.9 out of 5, far below every other facet. It is also typically the strongest predictor of overall job satisfaction.",
+      concepts:["facets"] },
+
+    { type:"quiz", ch:4, title:"Read Jordan",
+      q:"Instead of quietly checking out, Jordan keeps raising concerns and says they want to make it work. In the Exit–Voice–Loyalty–Neglect framework, Jordan is showing\u2026",
+      options:["Exit", "Voice", "Loyalty", "Neglect"], a:1,
+      explain:"Voice is an active, constructive attempt to improve conditions. That makes Jordan\'s honesty a gift; ignoring voice is how organizations push people toward exit.",
+      concepts:["evln"] },
+
+    { type:"choice", ch:4, title:"The Recruiter Question",
+      prompt:"How do you respond to Jordan's news?",
+      options:[
+        { text:"Quietly push for a counteroffer with a raise to keep Jordan from leaving.",
+          short:"Pushed for a raise counteroffer", tone:"ok", fx:{eng:1, trust:2},
+          title:"Mixed results: solving the wrong problem.",
+          feedback:"Pay scored 3.8, so it isn\'t the main issue. A raise might buy time, but the work itself still drains Jordan.",
+          concepts:["facets"] },
+        { text:"Thank Jordan for the honesty, then co-create a 30-day plan with clear milestones to reshape the role.",
+          short:"Thanked Jordan and co-created a 30-day plan", tone:"best", fx:{eng:10, trust:12},
+          title:"Strong move: rewarding voice and building commitment.",
+          feedback:"Responding to voice with action reinforces Jordan\'s commitment to Summit Collective. Jordan sees that speaking up actually works here.",
+          concepts:["commitment"] },
+        { text:"Pretend you didn\'t hear it. Recruiters contact everyone.",
+          short:"Ignored the recruiter news", tone:"poor", fx:{eng:-12, trust:-12},
+          title:"Rough trail: voice ignored becomes exit.",
+          feedback:"Jordan took a risk by being honest. When voice gets no response, people often shift toward neglect or exit.",
+          concepts:["evln"] }
+      ] },
+
+    /* ---------- CAMP 5: MOTIVATION ---------- */
+    { type:"story", ch:5, title:"Build the Route",
+      body:
+        '<p>Leadership approves a role redesign. You have one job left: build a version of Jordan\'s role that Jordan can do their best work in.</p>' +
+        '<div class="callout"><p>Jordan isn\'t necessarily unmotivated. The real question is whether Summit Collective has created an environment where Jordan can do their best work.</p></div>' +
+        '<p>You\'ll use the <strong>Job Characteristics Model</strong>. Each dimension is currently rated from 1 to 7. You have <strong>8 upgrade points</strong> to spend.</p>' },
+
+    { type:"budget", ch:5, title:"Redesign Jordan's Role", points:8,
+      dims:[
+        { k:"sv", name:"Skill Variety", start:2, w:3, desc:"Use a range of skills: brainstorming, problem-solving, partnership pitches." },
+        { k:"ti", name:"Task Identity", start:3, w:1, desc:"Own a client project from start to finish." },
+        { k:"ts", name:"Task Significance", start:4, w:1.5, desc:"See how the work affects clients and Summit Collective." },
+        { k:"au", name:"Autonomy", start:2, w:3, desc:"Choose how and when to tackle the work." },
+        { k:"fb", name:"Feedback", start:3, w:2, desc:"Get direct, timely signals about how the work is going." }
+      ],
+      concepts:["jcm","mps","jobCrafting"] },
+
+    { type:"ending", ch:6 }
+  ];
+
+  function surveyRow(label, v){
+    return '<div class="survey-row" aria-hidden="true"><span>' + label + '</span><div class="bar"><span style="width:' + (v/5*100) + '%"></span></div><strong>' + v.toFixed(1) + '</strong></div>';
+  }
+
+  var ENDINGS = [
+    { min:160, icon:"🏔️", name:"The Summit",
+      text:"Six months later, Jordan co-leads Summit Collective\'s new client innovation pod, still in client partnerships, but now spending most of the week on the work that energizes them. Leaders who once asked Jordan to smile more now ask Jordan to run their brainstorming sessions. Nobody has to tell Jordan to look engaged anymore." },
+    { min:115, icon:"⛺", name:"High Camp",
+      text:"Jordan stays at Summit Collective. Parts of the role improved, and Jordan feels more heard, but much of the week is still routine coordination. Jordan is steady, not thriving. The view is good from here, but the summit is still up ahead." },
+    { min:0, icon:"🧭", name:"Lost the Trail",
+      text:"Two months later, Jordan accepts the recruiter\'s offer. In the exit interview, Jordan says they loved the people and the mission, but never felt the organization understood them. Summit Collective lost a top performer it never actually had a performance problem with." }
+  ];
+
+  /* ============================================================
+     STATE + ENGINE
+     ============================================================ */
+  var S;
+  var stage = document.getElementById("sc-stage");
+  var live = document.getElementById("sc-live");
+
+  function reset(){
+    S = { i:0, eng:55, trust:50, perf:80, insight:0, notes:[], log:[] };
+    renderStatus();
+  }
+
+  function clamp(n){ return Math.max(0, Math.min(100, Math.round(n))); }
+
+  function applyFx(fx){
+    if(!fx){ return; }
+    if(fx.eng){ S.eng = clamp(S.eng + fx.eng); }
+    if(fx.trust){ S.trust = clamp(S.trust + fx.trust); }
+    if(fx.perf){ S.perf = clamp(S.perf + fx.perf); }
+    renderStatus();
+  }
+
+  function addNotes(keys){
+    var added = [];
+    (keys || []).forEach(function(k){
+      if(CONCEPTS[k] && S.notes.indexOf(k) === -1){ S.notes.push(k); added.push(k); }
+    });
+    renderStatus();
+    if(!added.length){ return ""; }
+    return '<p class="new-notes">📓 <strong>New Field Notes:</strong> ' + added.map(function(k){ return CONCEPTS[k][0]; }).join(", ") + '</p>';
+  }
+
+  function setMeter(id, v){
+    document.getElementById("val-" + id).textContent = v;
+    var bar = document.getElementById("bar-" + id);
+    bar.setAttribute("aria-valuenow", v);
+    bar.firstElementChild.style.width = v + "%";
+  }
+
+  function renderStatus(){
+    setMeter("eng", S.eng); setMeter("trust", S.trust); setMeter("perf", S.perf);
+    document.getElementById("val-insight").textContent = S.insight;
+    var ch = SCENES[S.i] ? SCENES[S.i].ch : 6;
+    document.getElementById("sc-trail").innerHTML = CAMPS.map(function(c, k){
+      var cls = k < ch ? "done" : (k === ch ? "current" : "");
+      var state = k < ch ? " (completed)" : (k === ch ? " (current)" : "");
+      return '<li class="' + cls + '"' + (k === ch ? ' aria-current="step"' : '') + '><span class="dot" aria-hidden="true">' + (k < ch ? "✓" : CAMP_ICONS[k]) + '</span>' + c + '<span class="sr-only">' + state + '</span></li>';
+    }).join("");
+    document.getElementById("notes-count").textContent = S.notes.length;
+    document.getElementById("notes-body").innerHTML = S.notes.length
+      ? '<ul class="notes-list">' + S.notes.map(function(k){ return '<li><strong>' + CONCEPTS[k][0] + '</strong><br>' + CONCEPTS[k][1] + '</li>'; }).join("") + '</ul>'
+      : '<p class="notes-empty">Concepts you discover on the climb will be saved here.</p>';
+  }
+
+  function chips(fx){
+    if(!fx){ return ""; }
+    var names = { eng:"Engagement", trust:"Trust", perf:"Performance" };
+    var out = Object.keys(names).filter(function(k){ return fx[k]; }).map(function(k){
+      var v = fx[k];
+      return '<span class="chip ' + (v > 0 ? "up" : "down") + '">' + names[k] + ' ' + (v > 0 ? "▲ +" : "▼ ") + v + '</span>';
+    });
+    return out.length ? '<div class="chips">' + out.join("") + '</div>' : "";
+  }
+
+  function head(sc){
+    var tag = sc.ch > 0 && sc.ch < 6 ? '<span class="camp-tag">' + CAMPS[sc.ch] + '</span><br>' : "";
+    return tag + '<h2 tabindex="-1">' + sc.title + '</h2>';
+  }
+
+  function actionsBar(label){
+    return '<div class="actions"><button type="button" class="btn" id="sc-next" ' + (label ? "" : "hidden") + '>' + (label || "Continue") + ' →</button></div>';
+  }
+
+  function showContinue(label){
+    var b = document.getElementById("sc-next");
+    if(label){ b.textContent = label + " →"; }
+    b.hidden = false;
+    b.focus();
+  }
+
+  function bindNext(){
+    var b = document.getElementById("sc-next");
+    if(b){ b.addEventListener("click", next); }
+  }
+
+  function next(){
+    S.i = Math.min(S.i + 1, SCENES.length - 1);
+    render();
+  }
+
+  function focusHeading(){
+    var h = stage.querySelector("h2");
+    if(h){ h.focus(); }
+    window.scrollTo({ top: Math.max(0, stage.getBoundingClientRect().top + window.pageYOffset - 12), behavior:"auto" });
+  }
+
+  function render(){
+    var sc = SCENES[S.i];
+    renderStatus();
+    var fn = { title:renderTitle, story:renderStory, sort:renderSort, quiz:renderQuiz, choice:renderChoice, budget:renderBudget, ending:renderEnding }[sc.type];
+    fn(sc);
+    if(sc.type !== "title"){ focusHeading(); }
+  }
+
+  /* ---------- Title ---------- */
+  function renderTitle(){
+    stage.innerHTML =
+      '<div class="hero"><div class="badge" aria-hidden="true">🏔️</div>' +
+      '<h2 tabindex="-1">Can you help Jordan reach the summit?</h2>' +
+      '<p>Jordan is a top performer at Summit Collective, yet something isn\'t working. Climb through five camps, apply what you\'re learning in Organizational Behavior, and decide how the story ends.</p></div>' +
+      '<div class="how">' +
+        '<div><strong>🎯 Make choices</strong>Every decision moves Jordan\'s Engagement, Trust in You, and Team Performance.</div>' +
+        '<div><strong>🧩 Solve challenges</strong>Sort, diagnose, and redesign to earn Insight Points.</div>' +
+        '<div><strong>📓 Collect Field Notes</strong>Each OB concept you uncover is saved to your journal.</div>' +
+        '<div><strong>🚩 Reach an ending</strong>There are three endings. Your meters decide which one you reach.</div>' +
+      '</div>' +
+      '<div class="actions" style="justify-content:center"><button type="button" class="btn" id="sc-start">Start the climb →</button></div>';
+    document.getElementById("sc-start").addEventListener("click", next);
+  }
+
+  /* ---------- Story ---------- */
+  function renderStory(sc){
+    stage.innerHTML = head(sc) + '<div class="scene-body">' + sc.body + '</div>' + actionsBar("Continue");
+    bindNext();
+  }
+
+  /* ---------- Sort ---------- */
+  function renderSort(sc){
+    var html = head(sc) + '<div class="scene-body">' + (sc.intro || "") + '</div><form id="sc-sort" novalidate>';
+    sc.items.forEach(function(it, n){
+      html += '<fieldset class="sort-item" id="si-' + n + '"><legend>' + it.text + (it.hrs ? ' <span class="hours">(' + it.hrs + ' hrs/week)</span>' : '') + '</legend><div class="cats">';
+      sc.cats.forEach(function(c, ci){
+        html += '<label><input type="radio" name="s' + n + '" value="' + ci + '"> ' + c + '</label>';
+      });
+      html += '</div><p class="item-fb"></p></fieldset>';
+    });
+    html += '<div class="actions"><button type="submit" class="btn" id="sc-check" disabled>Check my answers</button></div>' +
+            '<p class="msg" id="sc-remaining"></p></form><div id="sc-fb" aria-live="polite"></div>' + actionsBar("");
+    stage.innerHTML = html;
+    bindNext();
+
+    var form = document.getElementById("sc-sort");
+    var check = document.getElementById("sc-check");
+    var remaining = document.getElementById("sc-remaining");
+    function answered(){ return sc.items.filter(function(_, n){ return form.querySelector('input[name="s' + n + '"]:checked'); }).length; }
+    function update(){
+      var left = sc.items.length - answered();
+      check.disabled = left > 0;
+      remaining.textContent = left > 0 ? left + " item" + (left === 1 ? "" : "s") + " left to sort" : "Ready to check!";
+    }
+    update();
+    form.addEventListener("change", update);
+    form.addEventListener("submit", function(e){
+      e.preventDefault();
+      if(answered() < sc.items.length){ return; }
+      var right = 0;
+      sc.items.forEach(function(it, n){
+        var pick = parseInt(form.querySelector('input[name="s' + n + '"]:checked').value, 10);
+        var box = document.getElementById("si-" + n);
+        var ok = pick === it.a;
+        if(ok){ right++; }
+        box.classList.add(ok ? "right" : "miss");
+        box.querySelector(".item-fb").innerHTML = (ok ? "✅ <strong>Correct.</strong> " : "❌ <strong>Answer: " + sc.cats[it.a] + ".</strong> ") + it.why;
+      });
+      form.querySelectorAll("input").forEach(function(inp){ inp.disabled = true; });
+      check.hidden = true; remaining.textContent = "";
+      S.insight += right;
+      var tone = right === sc.items.length ? "best" : (right >= sc.items.length / 2 ? "ok" : "poor");
+      var label = tone === "best" ? "Perfect sort!" : (tone === "ok" ? "Nice work." : "Tricky one.");
+      document.getElementById("sc-fb").innerHTML = '<div class="fb ' + tone + '"><p class="fb-title">' + label + ' You got ' + right + ' of ' + sc.items.length + ' (+' + right + ' Insight Points).</p>' +
+        (sc.after ? sc.after(sc.items) : "") + addNotes(sc.concepts) + '</div>';
+      live.textContent = "You got " + right + " of " + sc.items.length + " correct.";
+      showContinue("Continue");
+    });
+  }
+
+  /* ---------- Quiz ---------- */
+  function renderQuiz(sc){
+    var html = head(sc) + '<fieldset><legend>' + sc.q + '</legend>';
+    sc.options.forEach(function(o, k){
+      html += '<button type="button" class="opt" data-k="' + k + '"><span class="opt-letter" aria-hidden="true">' + "ABCD".charAt(k) + '</span><span>' + o + '</span></button>';
+    });
+    html += '</fieldset><div id="sc-fb" aria-live="polite"></div>' + actionsBar("");
+    stage.innerHTML = html;
+    bindNext();
+    stage.querySelectorAll(".opt").forEach(function(b){
+      b.addEventListener("click", function(){
+        var k = parseInt(b.getAttribute("data-k"), 10);
+        var ok = k === sc.a;
+        stage.querySelectorAll(".opt").forEach(function(x, j){
+          x.disabled = true;
+          if(j === sc.a){ x.classList.add("correct"); }
+          else if(j === k){ x.classList.add("wrong"); }
+        });
+        if(ok){ S.insight += 2; }
+        document.getElementById("sc-fb").innerHTML = '<div class="fb ' + (ok ? "best" : "poor") + '"><p class="fb-title">' +
+          (ok ? "✅ Correct! +2 Insight Points." : "❌ Not quite. The answer is " + sc.options[sc.a] + ".") + '</p><p>' + sc.explain + '</p>' + addNotes(sc.concepts) + '</div>';
+        showContinue("Continue");
+      });
+    });
+  }
+
+  /* ---------- Choice ---------- */
+  function renderChoice(sc){
+    var html = head(sc) + '<fieldset><legend>' + sc.prompt + '</legend>';
+    sc.options.forEach(function(o, k){
+      html += '<button type="button" class="opt" data-k="' + k + '"><span class="opt-letter" aria-hidden="true">' + "ABCD".charAt(k) + '</span><span>' + o.text + '</span></button>';
+    });
+    html += '</fieldset><div id="sc-fb" aria-live="polite"></div>' + actionsBar("");
+    stage.innerHTML = html;
+    bindNext();
+    stage.querySelectorAll(".opt").forEach(function(b){
+      b.addEventListener("click", function(){
+        var k = parseInt(b.getAttribute("data-k"), 10);
+        var o = sc.options[k];
+        stage.querySelectorAll(".opt").forEach(function(x, j){ x.disabled = true; if(j === k){ x.classList.add("picked"); } });
+        applyFx(o.fx);
+        S.log.push({ camp:CAMPS[sc.ch], text:o.short, tone:o.tone });
+        var icon = o.tone === "best" ? "✅ " : (o.tone === "ok" ? "⚠️ " : "❌ ");
+        document.getElementById("sc-fb").innerHTML = '<div class="fb ' + o.tone + '"><p class="fb-title">' + icon + o.title + '</p><p>' + o.feedback + '</p>' + chips(o.fx) + addNotes(o.concepts) + '</div>';
+        showContinue(sc.ch === 4 ? "Head to Camp 5" : "Continue");
+      });
+    });
+  }
+
+  /* ---------- Budget (Job Characteristics Model) ---------- */
+  function renderBudget(sc){
+    var vals = {};
+    sc.dims.forEach(function(d){ vals[d.k] = d.start; });
+    var html = head(sc) + '<div class="scene-body"><p>Spend all <strong>' + sc.points + ' points</strong>. Each dimension can go up to 7. Think about what Jordan told you they need most.</p></div>' +
+      '<div class="budget-head"><span class="pill" id="b-left"></span><span class="pill mps" id="b-mps"></span></div><div id="b-dims">';
+    sc.dims.forEach(function(d){
+      html += '<div class="dim"><h3 id="dn-' + d.k + '">' + d.name + '</h3>' +
+        '<div class="stepper"><button type="button" data-k="' + d.k + '" data-d="-1" aria-label="Decrease ' + d.name + '">−</button>' +
+        '<div class="pips" id="pp-' + d.k + '" aria-hidden="true"></div><span class="val" id="vv-' + d.k + '" aria-live="polite"></span>' +
+        '<button type="button" data-k="' + d.k + '" data-d="1" aria-label="Increase ' + d.name + '">+</button></div><p>' + d.desc + '</p></div>';
+    });
+    html += '</div><p class="msg" id="b-msg" aria-live="polite"></p>' +
+      '<div class="actions"><button type="button" class="btn secondary" id="b-reset">Reset points</button><button type="button" class="btn" id="b-lock" disabled>Lock in the redesign</button></div>' +
+      '<div id="sc-fb" aria-live="polite"></div>' + actionsBar("");
+    stage.innerHTML = html;
+    bindNext();
+
+    function spent(){ return sc.dims.reduce(function(s, d){ return s + (vals[d.k] - d.start); }, 0); }
+    function mps(){ return Math.round(((vals.sv + vals.ti + vals.ts) / 3) * vals.au * vals.fb); }
+    var startMps = Math.round(((2 + 3 + 4) / 3) * 2 * 3);
+
+    function draw(){
+      var left = sc.points - spent();
+      document.getElementById("b-left").textContent = "Points left: " + left;
+      document.getElementById("b-mps").textContent = "Motivating Potential: " + mps() + " (was " + startMps + ")";
+      sc.dims.forEach(function(d){
+        var v = vals[d.k], pips = "";
+        for(var p = 1; p <= 7; p++){ pips += '<i class="' + (p <= d.start ? "on" : (p <= v ? "new" : "")) + '"></i>'; }
+        document.getElementById("pp-" + d.k).innerHTML = pips;
+        document.getElementById("vv-" + d.k).textContent = v;
+      });
+      stage.querySelectorAll("#b-dims button").forEach(function(b){
+        var k = b.getAttribute("data-k"), dir = parseInt(b.getAttribute("data-d"), 10);
+        var d = sc.dims.filter(function(x){ return x.k === k; })[0];
+        b.disabled = dir > 0 ? (vals[k] >= 7 || left <= 0) : (vals[k] <= d.start);
+      });
+      document.getElementById("b-lock").disabled = left !== 0;
+      document.getElementById("b-msg").textContent = left > 0 ? "Spend all of your points to lock in the redesign." : "All points spent. Ready to lock it in.";
+    }
+    draw();
+
+    stage.querySelector("#b-dims").addEventListener("click", function(e){
+      var b = e.target.closest("button");
+      if(!b || b.disabled){ return; }
+      var k = b.getAttribute("data-k");
+      vals[k] += parseInt(b.getAttribute("data-d"), 10);
+      draw();
+    });
+    document.getElementById("b-reset").addEventListener("click", function(){
+      sc.dims.forEach(function(d){ vals[d.k] = d.start; });
+      draw();
+    });
+    document.getElementById("b-lock").addEventListener("click", function(){
+      var gain = 0;
+      sc.dims.forEach(function(d){ gain += (vals[d.k] - d.start) * d.w; });
+      var engFx = Math.round(gain);                       // max about +24
+      var perfFx = vals.fb > 3 ? (vals.fb - 3) * 2 : 0;   // feedback helps performance
+      var coreHits = (vals.sv - 2) + (vals.au - 2);       // points into what Jordan said they need
+      var tone = coreHits >= 5 ? "best" : (coreHits >= 3 ? "ok" : "poor");
+      var fx = { eng:engFx, trust:5, perf:perfFx };
+      applyFx(fx);
+      S.insight += tone === "best" ? 5 : (tone === "ok" ? 3 : 1);
+      S.log.push({ camp:CAMPS[5], text:"Redesigned the role (MPS " + startMps + " → " + mps() + ")", tone:tone });
+      stage.querySelectorAll("#b-dims button, #b-reset, #b-lock").forEach(function(x){ x.disabled = true; });
+      var title = tone === "best" ? "✅ Jordan lights up." : (tone === "ok" ? "⚠️ Jordan is cautiously optimistic." : "❌ Jordan is polite, but not convinced.");
+      var why = tone === "best"
+        ? "You invested heavily in skill variety and autonomy, the exact things Jordan said were missing. Because autonomy multiplies the whole MPS formula, the score jumped."
+        : (tone === "ok"
+          ? "Some of your points went to what Jordan needs most, skill variety and autonomy, but others went to dimensions that were already decent."
+          : "Most of your points went to dimensions Jordan never raised as concerns. Remember: Jordan wants new problems to solve and more freedom in how to solve them.");
+      document.getElementById("sc-fb").innerHTML = '<div class="fb ' + tone + '"><p class="fb-title">' + title + '</p><p>' + why + '</p>' +
+        '<p>Motivating Potential Score: <strong>' + startMps + ' → ' + mps() + '</strong></p>' + chips(fx) + addNotes(sc.concepts) + '</div>';
+      showContinue("See how the story ends");
+    });
+  }
+
+  /* ---------- Ending ---------- */
+  function renderEnding(){
+    var score = S.eng + S.trust;
+    var end = ENDINGS.filter(function(e){ return score >= e.min; })[0];
+    var bestCount = S.log.filter(function(l){ return l.tone === "best"; }).length;
+    var tagText = { best:"Strong", ok:"Mixed", poor:"Rough" };
+    stage.innerHTML =
+      '<h2 tabindex="-1">Your Ending: ' + end.name + '</h2>' +
+      '<div class="ending-card"><h3><span aria-hidden="true">' + end.icon + '</span> ' + end.name + '</h3><p>' + end.text + '</p></div>' +
+      '<p><strong>Final meters:</strong> Engagement ' + S.eng + ' · Trust ' + S.trust + ' · Team Performance ' + S.perf + ' · Insight Points ' + S.insight + ' · Field Notes ' + S.notes.length + ' of ' + Object.keys(CONCEPTS).length + '</p>' +
+      '<h3>Your route</h3><ol class="log">' + S.log.map(function(l){
+        return '<li><strong>' + l.camp + ':</strong> ' + l.text + '<span class="tag ' + l.tone + '">' + tagText[l.tone] + '</span></li>';
+      }).join("") + '</ol>' +
+      '<p>You made <strong>' + bestCount + ' of ' + S.log.length + '</strong> strong decisions. ' +
+        (end.name === "The Summit" ? "Notice that you never had to change Jordan; you changed how Summit Collective understood and supported Jordan." : "Try another route. Each ending is reachable, and the meters show exactly where the climb turned.") + '</p>' +
+      '<div class="callout"><p><strong>Reflect:</strong> Jordan never had a performance problem. Which camp changed the outcome most on your climb, and which OB concept explains why?</p></div>' +
+      '<div class="actions"><button type="button" class="btn secondary" id="sc-copy">Copy my debrief</button><button type="button" class="btn" id="sc-again">Climb again ↺</button></div>' +
+      '<div id="sc-copy-area" aria-live="polite"></div>';
+
+    document.getElementById("sc-again").addEventListener("click", function(){ reset(); S.i = 1; render(); });
+    document.getElementById("sc-copy").addEventListener("click", function(){
+      var txt = "Summit Collective: The Jordan Route\nEnding: " + end.name +
+        "\nEngagement " + S.eng + " | Trust " + S.trust + " | Team Performance " + S.perf + " | Insight Points " + S.insight +
+        "\n\nMy route:\n" + S.log.map(function(l, n){ return (n + 1) + ". " + l.camp + ": " + l.text + " (" + tagText[l.tone] + ")"; }).join("\n") +
+        "\n\nField Notes collected: " + S.notes.map(function(k){ return CONCEPTS[k][0]; }).join(", ");
+      var area = document.getElementById("sc-copy-area");
+      function fallback(){
+        area.innerHTML = '<label for="sc-copybox"><strong>Select and copy your debrief:</strong></label><textarea class="copybox" id="sc-copybox" readonly></textarea>';
+        var box = document.getElementById("sc-copybox"); box.value = txt; box.focus(); box.select();
+      }
+      if(navigator.clipboard && window.isSecureContext){
+        navigator.clipboard.writeText(txt).then(function(){ area.innerHTML = '<p class="msg">✅ Debrief copied to your clipboard.</p>'; }, fallback);
+      } else { fallback(); }
+    });
+  }
+
+  reset();
+  render();
+})();
+</script>
+</body>
+</html>
